@@ -1,0 +1,29 @@
+{{ if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "community-api.fullname" . }}-ingress
+  labels:
+    {{- include "community-api.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.cert_manager.cluster_issuer }}
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+spec:
+  ingressClassName: {{ .Values.ingress.controller.class }}
+  tls:
+    - hosts:
+      - {{ .Values.ingress.host }}
+      secretName: {{ include "community-api.fullname" . }}-tls-secret
+  rules:
+      - host: {{ .Values.ingress.host }}
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: {{ include "community-api.fullname" . }}
+                  port:
+                    number: {{ .Values.service.port }}
+{{- end }}
+

@@ -1,0 +1,21 @@
+# HTTP Server
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+#Server info
+info:
+  app:
+    name: ${spring.application.name}
+    description: Info SAS API
+    groupId: com.torresj
+    artifactId: community-api
+    version: ${APP_VERSION:SNAPSHOT}
