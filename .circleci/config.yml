@@ -71,11 +71,11 @@ jobs:
       # Install chart
       - run:
           name: Install chart
-          command: helm upgrade community-api helm/community-api -n sas --set db.db_user=$DB_USER,db.db_name=$DB_NAME,db.db_password=$DB_PASSWORD --install --kubeconfig=helm/kubeconfig
+          command: helm upgrade community-api helm/community-api -n community --set db.db_user=$DB_USER,db.db_name=$DB_NAME,db.db_password=$DB_PASSWORD --install --kubeconfig=helm/kubeconfig
       # Check deployment
       - run:
           name: Check deployment
-          command: kubectl rollout status deployment community-api --timeout=180s -n sas --kubeconfig=helm/kubeconfig
+          command: kubectl rollout status deployment community-api --timeout=180s -n community --kubeconfig=helm/kubeconfig
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
