@@ -1,3 +1,17 @@
 #Loggin
 logging:
   config: classpath:logback-spring-test.xml
+
+# Admin
+admin:
+  name: test
+  password: test
+
+#JWT config
+jwt:
+  token:
+    secret: SecretKeyToGenerateAJSONWebTokens
+    expiration: 600000
+    prefix: Bearer
+    issuer:
+      info: community-api

@@ -39,6 +39,15 @@ db:
   db_user:
   db_password:
 
+admin:
+  name:
+  password:
+
+jwt:
+  token:
+    secret:
+    expiration:
+
 ingress:
   enabled: true
   controller:
@@ -57,9 +66,9 @@ resources: { }
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
+#   memory: 128Mi
+# requests:
+#   cpu: 100m
 #   memory: 128Mi
 
 nodeSelector: { }

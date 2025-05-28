@@ -14,7 +14,7 @@ spring:
           sharedCache:
             mode: UNSPECIFIED
 
-#Loggin
+# Login
 logging:
   config: classpath:logback-spring-prod.xml
 
@@ -33,3 +33,17 @@ management:
       enabled: true
     readinessState:
       enabled: true
+
+# Admin
+admin:
+  name: ${ADMIN_NAME}
+  password: ${ADMIN_PASSWORD}
+
+#JWT config
+jwt:
+  token:
+    secret: ${JWT_TOKEN_SECRET}
+    expiration: ${JWT_TOKEN_EXPIRATION}
+    prefix: Bearer
+    issuer:
+      info: community-api

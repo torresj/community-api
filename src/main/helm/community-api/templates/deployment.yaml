@@ -18,7 +18,7 @@ spec:
       labels:
         {{- include "community-api.selectorLabels" . | nindent 8 }}
     spec:
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: {{ .Values.imagePullSecrets }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -58,6 +58,14 @@ spec:
               value: "{{ .Values.db.db_user }}"
             - name: DB_PASSWORD
               value: "{{ .Values.db.db_password }}"
+            - name: ADMIN_NAME
+              value: "{{ .Values.admin.name }}"
+            - name: ADMIN_PASSWORD
+              value: "{{ .Values.admin.password }}"
+            - name: JWT_TOKEN_SECRET
+              value: "{{ .Values.jwt.token.secret }}"
+            - name: JWT_TOKEN_EXPIRATION
+              value: "{{ .Values.jwt.token.expiration }}"
             {{ if .Values.cloud.config.enabled -}}
             - name: SPRING_CLOUD_CONFIG_ENABLED
               value: "true"

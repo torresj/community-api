@@ -8,10 +8,14 @@ import com.torresj.community.exceptions.CommunityNotFoundException;
 import com.torresj.community.exceptions.UserNotFoundException;
 import com.torresj.community.mappers.UserMapper;
 import com.torresj.community.repositories.UserRepository;
+import com.torresj.community.security.CustomUserDetails;
 import com.torresj.community.services.CommunityService;
 import com.torresj.community.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,10 +24,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository repository;
     private final UserMapper userMapper;
     private final CommunityService communityService;
+    private final UserRepository userRepository;
 
     @Override
     public UserDto create(Long communityId, String name, String password, UserRole role)
@@ -48,7 +53,9 @@ public class UserServiceImpl implements UserService {
     public UserDto get(long userId) throws UserNotFoundException, CommunityNotFoundException {
         UserEntity userEntity =
                 repository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-        CommunityDto communityDto = communityService.get(userEntity.getCommunityId());
+        CommunityDto communityDto = userEntity.getCommunityId() == null
+                ? null
+                : communityService.get(userEntity.getCommunityId());
         return userMapper.toUserDto(userEntity, communityDto);
     }
 
@@ -57,7 +64,10 @@ public class UserServiceImpl implements UserService {
         List<UserEntity> entities = repository.findAll();
         List<UserDto> users = new ArrayList<>();
         for (UserEntity entity : entities) {
-            users.add(userMapper.toUserDto(entity, communityService.get(entity.getCommunityId())));
+            CommunityDto communityDto = entity.getCommunityId() == null
+                    ? null
+                    : communityService.get(entity.getCommunityId());
+            users.add(userMapper.toUserDto(entity, communityDto));
         }
         return users;
     }
@@ -68,6 +78,11 @@ public class UserServiceImpl implements UserService {
                 repository.findByName(name).orElseThrow(() -> new UserNotFoundException(name));
         CommunityDto communityDto = communityService.get(userEntity.getCommunityId());
         return userMapper.toUserDto(userEntity, communityDto);
+    }
+
+    @Override
+    public UserEntity getEntity(String name) throws UserNotFoundException {
+        return repository.findByName(name).orElseThrow(() -> new UserNotFoundException(name));
     }
 
     @Override
@@ -105,5 +120,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(long userId) {
         repository.deleteById(userId);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        UserEntity user = repository.findByName(username).orElseThrow(() -> new UsernameNotFoundException(username));
+        return new CustomUserDetails(user);
     }
 }
