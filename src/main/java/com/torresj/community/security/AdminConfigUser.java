@@ -19,7 +19,7 @@ public class AdminConfigUser {
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
 
-    @Value("${admin.name}")
+    @Value("${admin.name:admin}")
     private final String adminName;
 
     @Value("${admin.password}")

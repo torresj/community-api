@@ -18,14 +18,14 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(updatable = false)
     private Long id;
 
     @Column
     private Long communityId;
 
-    @Column(updatable = false, unique = true)
+    @Column(updatable = false, unique = true, nullable = false)
     private String name;
 
     @Column(nullable = false)
