@@ -6,7 +6,6 @@ import com.torresj.community.entities.UserEntity;
 import com.torresj.community.repositories.CommunityRepository;
 import com.torresj.community.repositories.UserRepository;
 import com.torresj.community.services.JwtService;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -112,7 +111,6 @@ public class UserControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUsers_WhenGetUsersWithoutCommunity_ThenReturnException() {
         UserEntity userEntity = userRepository.save(
                 UserEntity.builder()
@@ -125,7 +123,7 @@ public class UserControllerTest {
 
         String url = getBaseUri();
 
-        var httpEntity = new HttpEntity<>(getAuthHeader("test"));
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
         var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
         var body = result.getBody();
@@ -140,7 +138,6 @@ public class UserControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUser_WhenGetUserById_ThenReturnUser() {
         CommunityEntity communityEntity = communityRepository.save(
                 CommunityEntity.builder()
@@ -159,7 +156,7 @@ public class UserControllerTest {
 
         String url = getBaseUri() + "/" + userEntity.getId();
 
-        var httpEntity = new HttpEntity<>(getAuthHeader("test"));
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
         var result = restTemplate.exchange(url, GET, httpEntity, UserDto.class);
         var body = result.getBody();
@@ -178,7 +175,6 @@ public class UserControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUser_WhenGetUserByIdWithoutCommunity_ThenReturnException() {
         UserEntity userEntity = userRepository.save(
                 UserEntity.builder()
@@ -191,7 +187,7 @@ public class UserControllerTest {
 
         String url = getBaseUri() + "/" + userEntity.getId();
 
-        var httpEntity = new HttpEntity<>(getAuthHeader("test"));
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
         var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
         var body = result.getBody();
@@ -205,12 +201,11 @@ public class UserControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUserId_WhenGetUserByIdThatNotExists_ThenReturnException() {
 
         String url = getBaseUri() + "/4";
 
-        var httpEntity = new HttpEntity<>(getAuthHeader("test"));
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
         var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
         var body = result.getBody();

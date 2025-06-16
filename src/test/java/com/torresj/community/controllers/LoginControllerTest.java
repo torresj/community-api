@@ -5,7 +5,6 @@ import com.torresj.community.dtos.ResponseLoginDto;
 import com.torresj.community.entities.UserEntity;
 import com.torresj.community.repositories.UserRepository;
 import com.torresj.community.services.JwtService;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,7 +40,6 @@ public class LoginControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUser_WhenLogin_ThenReturnJWT() {
         var user = userRepository.save(
                 UserEntity.builder()
@@ -66,7 +64,6 @@ public class LoginControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUserDoesntExist_WhenLogin_ThenReturnError() {
         RequestLoginDto requestLoginDto = new RequestLoginDto("login_test", "password");
 
@@ -79,7 +76,6 @@ public class LoginControllerTest {
     }
 
     @Test
-    @Disabled
     public void givenUser_WhenLoginWithWrongPassword_ThenReturnError() {
         var user = userRepository.save(
                 UserEntity.builder()
