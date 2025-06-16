@@ -28,7 +28,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository repository;
     private final UserMapper userMapper;
     private final CommunityService communityService;
-    private final UserRepository userRepository;
 
     @Override
     public UserDto create(Long communityId, String name, String password, UserRole role)
