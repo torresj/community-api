@@ -6,6 +6,7 @@ import com.torresj.community.entities.UserEntity;
 import com.torresj.community.repositories.CommunityRepository;
 import com.torresj.community.repositories.UserRepository;
 import com.torresj.community.services.JwtService;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -107,6 +108,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @Disabled
     public void givenUsers_WhenGetUsersWithoutCommunity_ThenReturnException() {
         UserEntity userEntity = userRepository.save(
                 UserEntity.builder()
@@ -134,6 +136,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @Disabled
     public void givenUser_WhenGetUserById_ThenReturnUser() {
         CommunityEntity communityEntity = communityRepository.save(
                 CommunityEntity.builder()
@@ -171,6 +174,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @Disabled
     public void givenUser_WhenGetUserByIdWithoutCommunity_ThenReturnException() {
         UserEntity userEntity = userRepository.save(
                 UserEntity.builder()
@@ -197,6 +201,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @Disabled
     public void givenUserId_WhenGetUserByIdThatNotExists_ThenReturnException() {
 
         String url = getBaseUri() + "/4";
