@@ -29,12 +29,13 @@ public class AdminConfigUser {
     UserEntity createAdminUser() {
         var member = userRepository.findByName(adminName);
         member.ifPresent(userRepository::delete);
-        return userRepository.save(
+        var user = userRepository.save(
                 UserEntity.builder()
                         .role(ROLE_SUPERADMIN)
                         .name(adminName)
                         .password(encoder.encode(adminPassword))
-                        .build()
-        );
+                        .build());
+        log.info("Created admin user: {}", user);
+        return user;
     }
 }
