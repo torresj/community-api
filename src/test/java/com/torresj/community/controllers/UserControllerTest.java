@@ -90,7 +90,7 @@ public class UserControllerTest {
         var body = result.getBody();
         assertThat(body).hasSize(3);
         assertThat(body).extracting("name").containsExactlyInAnyOrder(
-                "test",
+                adminName,
                 "userForGetAll",
                 "userForGetAll2"
         );
