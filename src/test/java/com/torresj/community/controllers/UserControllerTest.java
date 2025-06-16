@@ -9,6 +9,7 @@ import com.torresj.community.services.JwtService;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -43,6 +44,9 @@ public class UserControllerTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @Value("${admin.name}")
+    private String adminName;
 
     private String getBaseUri() {
         return "http://localhost:" + port + "/v1/users";
@@ -80,7 +84,7 @@ public class UserControllerTest {
 
         String url = getBaseUri();
 
-        var httpEntity = new HttpEntity<>(getAuthHeader("test"));
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
         var result = restTemplate.exchange(url, GET, httpEntity, UserDto[].class);
         var body = result.getBody();
