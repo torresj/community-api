@@ -25,7 +25,7 @@ public class UserEntity {
     @Column
     private Long communityId;
 
-    @Column(updatable = false, unique = true, nullable = false)
+    @Column(updatable = false, unique = true)
     private String name;
 
     @Column(nullable = false)
