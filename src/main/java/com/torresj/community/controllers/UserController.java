@@ -93,7 +93,6 @@ public class UserController {
                             }),
                     @ApiResponse(responseCode = "404", description = "Not found", content = @Content),
             })
-    @PreAuthorize("hasRole('SUPERADMIN')")
     ResponseEntity<UserDto> getUserLogged(Principal principal)
             throws UserNotFoundException, CommunityNotFoundException {
         log.info("Getting user by name {}", principal.getName());
