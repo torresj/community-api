@@ -75,7 +75,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     public UserDto get(String name) throws UserNotFoundException, CommunityNotFoundException {
         UserEntity userEntity =
                 repository.findByName(name).orElseThrow(() -> new UserNotFoundException(name));
-        CommunityDto communityDto = communityService.get(userEntity.getCommunityId());
+        CommunityDto communityDto = userEntity.getCommunityId() != null
+                ? communityService.get(userEntity.getCommunityId())
+                : null;
         return userMapper.toUserDto(userEntity, communityDto);
     }
 
