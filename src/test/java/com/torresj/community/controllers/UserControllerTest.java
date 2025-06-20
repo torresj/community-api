@@ -16,10 +16,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
+import static com.torresj.community.enums.UserRole.ROLE_ADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_SUPERADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +46,9 @@ public class UserControllerTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Value("${admin.name}")
     private String adminName;
 
@@ -56,6 +61,18 @@ public class UserControllerTest {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + jwts);
         return headers;
+    }
+
+    @Test
+    public void givenNoUserAuthenticated_whenGetUsers_thenReturnException() {
+        var result = restTemplate.getForEntity(getBaseUri() + "/users", UserDto[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    public void givenNoUserAuthenticated_whenGetUserById_thenReturnException() {
+        var result = restTemplate.getForEntity(getBaseUri() + "/users/1", UserDto.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -138,6 +155,50 @@ public class UserControllerTest {
     }
 
     @Test
+    public void givenUsers_WhenGetUsersWithRoleUser_ThenReturnException() {
+        UserEntity userEntity = userRepository.save(
+                UserEntity.builder()
+                        .name("userRoleUser")
+                        .password(passwordEncoder.encode("password"))
+                        .role(ROLE_USER)
+                        .communityId(1L)
+                        .build()
+        );
+
+        String url = getBaseUri();
+
+        var httpEntity = new HttpEntity<>(getAuthHeader("userRoleUser"));
+
+        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(userEntity);
+    }
+
+    @Test
+    public void givenUsers_WhenGetUsersWithRoleAdmin_ThenReturnException() {
+        UserEntity userEntity = userRepository.save(
+                UserEntity.builder()
+                        .name("userAdmin")
+                        .password(passwordEncoder.encode("password"))
+                        .role(ROLE_ADMIN)
+                        .communityId(1L)
+                        .build()
+        );
+
+        String url = getBaseUri();
+
+        var httpEntity = new HttpEntity<>(getAuthHeader("userAdmin"));
+
+        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(userEntity);
+    }
+
+    @Test
     public void givenUser_WhenGetUserById_ThenReturnUser() {
         CommunityEntity communityEntity = communityRepository.save(
                 CommunityEntity.builder()
@@ -202,6 +263,22 @@ public class UserControllerTest {
 
     @Test
     public void givenUserId_WhenGetUserByIdThatNotExists_ThenReturnException() {
+
+        String url = getBaseUri() + "/4";
+
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
+        var body = result.getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(body.getTitle()).isEqualTo("User 4 not found");
+        assertThat(body.getDetail()).isEqualTo("User 4 not found");
+    }
+
+    @Test
+    public void givenUserId_WhenGetUserByIdWithAdminUser_ThenReturnException() {
 
         String url = getBaseUri() + "/4";
 
