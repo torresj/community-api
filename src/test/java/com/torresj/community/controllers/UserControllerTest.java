@@ -391,4 +391,25 @@ public class UserControllerTest {
 
         userRepository.delete(user);
     }
+
+    @Test
+    public void givenUserSuperAdmin_WhenCreateUSerWithNonExistingCommunity_ThenReturnException() {
+
+        String url = getBaseUri();
+        var request = new RequestNewUserDto(
+                "CreateTestUserWithCommunity",
+                "test",
+                ROLE_USER,
+                1L
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
+        var body = result.getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(body.getTitle()).isEqualTo("Community 1 not found");
+        assertThat(body.getDetail()).isEqualTo("Community 1 not found");
+    }
 }
