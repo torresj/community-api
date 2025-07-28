@@ -1,5 +1,6 @@
 package com.torresj.community.controllers;
 
+import com.torresj.community.dtos.RequestNewUserDto;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.entities.CommunityEntity;
 import com.torresj.community.entities.UserEntity;
@@ -26,6 +27,7 @@ import static com.torresj.community.enums.UserRole.ROLE_SUPERADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -291,5 +293,102 @@ public class UserControllerTest {
         assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
         assertThat(body.getTitle()).isEqualTo("User 4 not found");
         assertThat(body.getDetail()).isEqualTo("User 4 not found");
+    }
+
+    @Test
+    public void givenSuperAdminLogged_WhenCreateUser_ThenUserIsCreated() {
+
+        String url = getBaseUri();
+        var request = new RequestNewUserDto("CreateTestUser", "test", ROLE_USER, null);
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(url, POST, httpEntity, UserDto.class);
+        var body = result.getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.community()).isNull();
+        assertThat(body.role()).isEqualTo(ROLE_USER);
+        assertThat(body.name()).isEqualTo("CreateTestUser");
+
+        userRepository.deleteById(body.id());
+    }
+
+    @Test
+    public void givenSuperAdminLoggedAndCommunity_WhenCreateUser_ThenUserIsCreated() {
+
+        String url = getBaseUri();
+        var communityEntity = communityRepository.save(CommunityEntity.builder()
+                .name("communityForCreate")
+                .description("test")
+                .build());
+        var request = new RequestNewUserDto(
+                "CreateTestUserWithCommunity",
+                "test",
+                ROLE_USER,
+                communityEntity.getId()
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(url, POST, httpEntity, UserDto.class);
+        var body = result.getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.role()).isEqualTo(ROLE_USER);
+        assertThat(body.name()).isEqualTo("CreateTestUserWithCommunity");
+        assertThat(body.community()).isNotNull();
+        assertThat(body.community().id()).isEqualTo(communityEntity.getId());
+        assertThat(body.community().description()).isEqualTo(communityEntity.getDescription());
+        assertThat(body.community().name()).isEqualTo(communityEntity.getName());
+
+        communityRepository.deleteById(body.community().id());
+        userRepository.deleteById(body.id());
+    }
+
+    @Test
+    public void givenUserNotSuperAdmin_WhenCreateUSer_ThenReturnException() {
+
+        String url = getBaseUri();
+        var user = userRepository.save(UserEntity.builder()
+                .name("userNotAdmin")
+                .role(ROLE_USER)
+                .password("test")
+                .build());
+        var request = new RequestNewUserDto(
+                "CreateTestUserWithCommunity",
+                "test",
+                ROLE_USER,
+                null
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
+    }
+
+    @Test
+    public void givenUserAdmin_WhenCreateUSer_ThenReturnException() {
+
+        String url = getBaseUri();
+        var user = userRepository.save(UserEntity.builder()
+                .name("userAdmin")
+                .role(ROLE_ADMIN)
+                .password("test")
+                .build());
+        var request = new RequestNewUserDto(
+                "CreateTestUserWithCommunity",
+                "test",
+                ROLE_USER,
+                null
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
     }
 }

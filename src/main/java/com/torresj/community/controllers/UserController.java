@@ -1,5 +1,6 @@
 package com.torresj.community.controllers;
 
+import com.torresj.community.dtos.RequestNewUserDto;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.exceptions.CommunityNotFoundException;
 import com.torresj.community.exceptions.UserNotFoundException;
@@ -16,8 +17,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,6 +35,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
     @Operation(summary = "Get users")
     @ApiResponses(
@@ -98,6 +103,39 @@ public class UserController {
         log.info("Getting user by name {}", principal.getName());
         var user = userService.get(principal.getName());
         log.info("User found");
+        return ResponseEntity.ok(user);
+    }
+
+    @Operation(summary = "create new user")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Created",
+                            content = {
+                                    @Content(
+                                            mediaType = "application/json",
+                                            schema = @Schema(implementation = UserDto.class))
+                            }),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
+                    @ApiResponse(responseCode = "400", description = "Community Id not found", content = @Content)
+            })
+    @PostMapping
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    ResponseEntity<UserDto> create(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "New user",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = RequestNewUserDto.class)))
+            @RequestBody RequestNewUserDto request) throws CommunityNotFoundException {
+        log.info("Creating new user {}", request);
+        UserDto user = userService.create(
+                request.communityId(),
+                request.name(),
+                passwordEncoder.encode(request.password()), request.role()
+        );
+        log.info("User created {}", user);
         return ResponseEntity.ok(user);
     }
 }
