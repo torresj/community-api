@@ -1,6 +1,7 @@
 package com.torresj.community.controllers;
 
 import com.torresj.community.dtos.RequestNewUserDto;
+import com.torresj.community.dtos.RequestUpdateUserDto;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.exceptions.CommunityNotFoundException;
 import com.torresj.community.exceptions.UserNotFoundException;
@@ -19,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -122,6 +124,7 @@ public class UserController {
                     @ApiResponse(responseCode = "400", description = "Community Id not found", content = @Content)
             })
     @PostMapping
+    @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('SUPERADMIN')")
     ResponseEntity<UserDto> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -129,7 +132,7 @@ public class UserController {
                     required = true,
                     content = @Content(schema = @Schema(implementation = RequestNewUserDto.class)))
             @RequestBody RequestNewUserDto request) throws CommunityNotFoundException {
-        log.info("Creating new user {}", request);
+        log.info("Creating new user {}", request.name());
         UserDto user = userService.create(
                 request.communityId(),
                 request.name(),
@@ -137,5 +140,38 @@ public class UserController {
         );
         log.info("User created {}", user);
         return ResponseEntity.ok(user);
+    }
+
+    @Operation(summary = "Update user")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Updated"
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
+                    @ApiResponse(responseCode = "400", description = "User Id not found", content = @Content)
+            })
+    @PatchMapping("/{id}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    ResponseEntity<Void> updateUser(
+            @Parameter(description = "User id") @PathVariable long id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Update user",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = RequestUpdateUserDto.class)))
+            @RequestBody RequestUpdateUserDto request
+    ) throws UserNotFoundException {
+        log.info("Updating user {}", id);
+        if (request.password() != null && !request.password().isEmpty()) {
+            userService.update(id, passwordEncoder.encode(request.password()));
+        }
+        if (request.role() != null) {
+            userService.update(id, request.role());
+        }
+        log.info("User {} updated", id);
+        return ResponseEntity.ok(null);
     }
 }

@@ -1,6 +1,7 @@
 package com.torresj.community.controllers;
 
 import com.torresj.community.dtos.RequestNewUserDto;
+import com.torresj.community.dtos.RequestUpdateUserDto;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.entities.CommunityEntity;
 import com.torresj.community.entities.UserEntity;
@@ -27,6 +28,7 @@ import static com.torresj.community.enums.UserRole.ROLE_SUPERADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -411,5 +413,30 @@ public class UserControllerTest {
         assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
         assertThat(body.getTitle()).isEqualTo("Community 1 not found");
         assertThat(body.getDetail()).isEqualTo("Community 1 not found");
+    }
+
+    @Test
+    public void givenSuperAdminLoggedAndUser_WhenUpdateUser_ThenUserIsUpdated() {
+
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userForUpdate")
+                .role(ROLE_USER)
+                .password("test")
+                .build());
+        var request = new RequestUpdateUserDto(
+                "test2",
+                ROLE_ADMIN
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(url + "/" + user.getId(), PATCH, httpEntity, String.class);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(userRepository.findById(user.getId()).orElseThrow(RuntimeException::new).getRole())
+                .isEqualTo(ROLE_ADMIN);
+
+        userRepository.delete(user);
     }
 }
