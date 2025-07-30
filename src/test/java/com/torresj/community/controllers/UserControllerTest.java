@@ -439,4 +439,86 @@ public class UserControllerTest {
 
         userRepository.delete(user);
     }
+
+    @Test
+    public void givenSuperAdminLogged_WhenUpdateUserDoesntExist_ThenReturnException() {
+
+        String url = getBaseUri();
+
+        var request = new RequestUpdateUserDto(
+                "test2",
+                ROLE_ADMIN
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
+
+        var result = restTemplate.exchange(
+                url + "/" + 999,
+                PATCH,
+                httpEntity,
+                ProblemDetail.class
+        );
+
+        var body = result.getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(body.getTitle()).isEqualTo("User 999 not found");
+        assertThat(body.getDetail()).isEqualTo("User 999 not found");
+    }
+
+    @Test
+    public void givenUserNotAdmin_WhenUpdateUser_ThenReturnException() {
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userNotAdmin")
+                .role(ROLE_USER)
+                .password("test")
+                .build());
+
+        var request = new RequestUpdateUserDto(
+                "test2",
+                ROLE_ADMIN
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(
+                url + "/" + 999,
+                PATCH,
+                httpEntity,
+                String.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
+    }
+
+    @Test
+    public void givenUserAdmin_WhenUpdateUser_ThenReturnException() {
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userAdmin")
+                .role(ROLE_ADMIN)
+                .password("test")
+                .build());
+
+        var request = new RequestUpdateUserDto(
+                "test2",
+                ROLE_USER
+        );
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(
+                url + "/" + 999,
+                PATCH,
+                httpEntity,
+                String.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
+    }
 }
