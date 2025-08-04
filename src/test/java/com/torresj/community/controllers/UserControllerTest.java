@@ -27,6 +27,7 @@ import static com.torresj.community.enums.UserRole.ROLE_ADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_SUPERADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
@@ -513,6 +514,77 @@ public class UserControllerTest {
         var result = restTemplate.exchange(
                 url + "/" + 999,
                 PATCH,
+                httpEntity,
+                String.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
+    }
+
+    @Test
+    public void givenSuperAdminLogged_WhenDeleteUser_ThenUserIsDeleted() {
+
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userToBeDeleted")
+                .role(ROLE_USER)
+                .password("test")
+                .build());
+
+        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
+
+        restTemplate.exchange(
+                url + "/" + user.getId(),
+                DELETE,
+                httpEntity,
+                String.class
+        );
+
+        assertThat(userRepository.findById(user.getId()).isEmpty()).isTrue();
+    }
+
+    @Test
+    public void givenUser_WhenDeleteUser_ThenReturnException() {
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userNoAdmin")
+                .role(ROLE_USER)
+                .password("test")
+                .build());
+
+        var httpEntity = new HttpEntity<>(getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(
+                url + "/" + 999,
+                DELETE,
+                httpEntity,
+                String.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        userRepository.delete(user);
+    }
+
+    @Test
+    public void givenUserAdmin_WhenDeleteUser_ThenReturnException() {
+        String url = getBaseUri();
+
+        var user = userRepository.save(UserEntity.builder()
+                .name("userAdmin")
+                .role(ROLE_ADMIN)
+                .password("test")
+                .build());
+
+        var httpEntity = new HttpEntity<>(getAuthHeader(user.getName()));
+
+        var result = restTemplate.exchange(
+                url + "/" + 999,
+                DELETE,
                 httpEntity,
                 String.class
         );

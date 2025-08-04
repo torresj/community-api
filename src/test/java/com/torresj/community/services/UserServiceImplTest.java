@@ -22,6 +22,9 @@ import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -242,5 +245,25 @@ class UserServiceImplTest {
         );
 
         assertThat(exception.getMessage()).isEqualTo("User 999 not found");
+    }
+
+    @Test
+    void givenUserId_WhenDeleteUser_ThenUserIsDeleted() {
+
+        when(userRepository.existsById(1L)).thenReturn(true);
+
+        userService.delete(1L);
+
+        verify(userRepository, times(1)).deleteById(1L);
+    }
+
+    @Test
+    void givenUserIdDoesntExist_WhenDeleteUser_ThenNoErrorIsThrown() {
+
+        when(userRepository.existsById(1L)).thenReturn(false);
+
+        userService.delete(1L);
+
+        verify(userRepository, never()).deleteById(1L);
     }
 }

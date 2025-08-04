@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -172,6 +173,28 @@ public class UserController {
             userService.update(id, request.role());
         }
         log.info("User {} updated", id);
+        return ResponseEntity.ok(null);
+    }
+
+    @Operation(summary = "Delete user")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Deleted"
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content)
+            })
+    @DeleteMapping("/{id}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    ResponseEntity<Void> deleteUser(
+            @Parameter(description = "User id") @PathVariable long id
+    ) {
+        log.info("Deleting user {}", id);
+        userService.delete(id);
+        log.info("User {} deleted", id);
         return ResponseEntity.ok(null);
     }
 }
