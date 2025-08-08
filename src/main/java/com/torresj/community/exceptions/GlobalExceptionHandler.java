@@ -36,4 +36,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error(e.toString());
         return problemDetail;
     }
+
+    @ExceptionHandler(UserNotInCommunityException.class)
+    ProblemDetail handleUserNotInCommunityException(UserNotInCommunityException e) {
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+        problemDetail.setTitle(e.getMessage());
+        log.error(e.toString());
+        return problemDetail;
+    }
 }
