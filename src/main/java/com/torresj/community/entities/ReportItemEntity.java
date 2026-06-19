@@ -25,6 +25,10 @@ public class ReportItemEntity {
     @Column(updatable = false, nullable = false)
     private Long reportId;
 
+    /** Position in the agenda ("orden del día"): 1º, 2º, ... ("order" is a reserved word). */
+    @Column(name = "item_order")
+    private Integer itemOrder;
+
     @Column(nullable = false)
     private String description;
 

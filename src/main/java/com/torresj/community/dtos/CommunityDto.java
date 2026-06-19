@@ -6,6 +6,8 @@ public record CommunityDto(
         long id,
         String name,
         String description,
+        String address,
+        String cif,
         List<PropertyDto> properties
 ) {
 }

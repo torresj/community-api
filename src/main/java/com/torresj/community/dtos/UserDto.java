@@ -2,10 +2,14 @@ package com.torresj.community.dtos;
 
 import com.torresj.community.enums.UserRole;
 
+import java.util.List;
+
 public record UserDto(
         long id,
-        CommunityDto community,
+        String username,
         String name,
-        UserRole role
+        String surname,
+        UserRole role,
+        List<MembershipDto> memberships
 ) {
 }

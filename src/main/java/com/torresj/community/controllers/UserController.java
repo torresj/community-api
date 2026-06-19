@@ -133,11 +133,14 @@ public class UserController {
                     required = true,
                     content = @Content(schema = @Schema(implementation = RequestNewUserDto.class)))
             @RequestBody RequestNewUserDto request) throws CommunityNotFoundException {
-        log.info("Creating new user {}", request.name());
+        log.info("Creating new user {}", request.username());
         UserDto user = userService.create(
-                request.communityId(),
+                request.username(),
+                passwordEncoder.encode(request.password()),
                 request.name(),
-                passwordEncoder.encode(request.password()), request.role()
+                request.surname(),
+                request.role(),
+                request.memberships()
         );
         log.info("User created {}", user);
         return ResponseEntity.ok(user);

@@ -1,11 +1,15 @@
 package com.torresj.community.controllers;
 
+import com.torresj.community.dtos.RequestMembership;
 import com.torresj.community.dtos.RequestNewUserDto;
 import com.torresj.community.dtos.RequestUpdateUserDto;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.entities.CommunityEntity;
+import com.torresj.community.entities.MembershipEntity;
 import com.torresj.community.entities.UserEntity;
+import com.torresj.community.enums.UserRole;
 import com.torresj.community.repositories.CommunityRepository;
+import com.torresj.community.repositories.MembershipRepository;
 import com.torresj.community.repositories.UserRepository;
 import com.torresj.community.services.JwtService;
 import org.junit.jupiter.api.Test;
@@ -23,8 +27,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
+import static com.torresj.community.enums.CommunityRole.MEMBER;
 import static com.torresj.community.enums.UserRole.ROLE_ADMIN;
-import static com.torresj.community.enums.UserRole.ROLE_SUPERADMIN;
 import static com.torresj.community.enums.UserRole.ROLE_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpMethod.DELETE;
@@ -44,6 +48,9 @@ public class UserControllerTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MembershipRepository membershipRepository;
 
     @Autowired
     private CommunityRepository communityRepository;
@@ -68,528 +75,224 @@ public class UserControllerTest {
         return headers;
     }
 
-    @Test
-    public void givenNoUserAuthenticated_whenGetUsers_thenReturnException() {
-        var result = restTemplate.getForEntity(getBaseUri() + "/users", UserDto[].class);
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    private UserEntity saveUser(String username, UserRole role) {
+        return userRepository.save(UserEntity.builder()
+                .username(username)
+                .password(passwordEncoder.encode("password"))
+                .role(role)
+                .build());
     }
 
     @Test
-    public void givenNoUserAuthenticated_whenGetUserById_thenReturnException() {
-        var result = restTemplate.getForEntity(getBaseUri() + "/users/1", UserDto.class);
+    public void givenNoUserAuthenticated_whenGetUsers_thenReturnForbidden() {
+        var result = restTemplate.getForEntity(getBaseUri(), UserDto[].class);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     public void givenUsers_WhenGetUsers_ThenReturnUsers() {
-        CommunityEntity communityEntity = communityRepository.save(
-                CommunityEntity.builder()
-                        .name("communityForGetAll")
-                        .description("test")
-                        .build()
-        );
-        List<UserEntity> userEntities = userRepository.saveAll(List.of(
-                UserEntity.builder()
-                        .name("userForGetAll")
-                        .password("test")
-                        .role(ROLE_USER)
-                        .communityId(communityEntity.getId())
-                        .build(),
-                UserEntity.builder()
-                        .name("userForGetAll2")
-                        .password("test")
-                        .role(ROLE_USER)
-                        .communityId(communityEntity.getId())
-                        .build()
-        ));
-
-        String url = getBaseUri();
+        var community = communityRepository.save(
+                CommunityEntity.builder().name("communityForGetAll").description("test").build());
+        var user1 = saveUser("userForGetAll", ROLE_USER);
+        var user2 = saveUser("userForGetAll2", ROLE_USER);
+        membershipRepository.save(MembershipEntity.builder()
+                .userId(user1.getId()).communityId(community.getId()).role(MEMBER).build());
 
         var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, UserDto[].class);
+        var result = restTemplate.exchange(getBaseUri(), GET, httpEntity, UserDto[].class);
         var body = result.getBody();
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(body).hasSize(3);
-        assertThat(body).extracting("name").containsExactlyInAnyOrder(
-                adminName,
-                "userForGetAll",
-                "userForGetAll2"
-        );
-        assertThat(body).extracting("role").containsExactlyInAnyOrder(ROLE_SUPERADMIN, ROLE_USER, ROLE_USER);
-        assertThat(body).extracting("id").containsExactlyInAnyOrder(
-                1L,
-                userEntities.get(0).getId(),
-                userEntities.get(1).getId()
-        );
-        assertThat(body[1].community().id()).isEqualTo(communityEntity.getId());
-        assertThat(body[1].community().description()).isEqualTo(communityEntity.getDescription());
-        assertThat(body[1].community().name()).isEqualTo(communityEntity.getName());
-        assertThat(body[2].community().id()).isEqualTo(communityEntity.getId());
-        assertThat(body[2].community().description()).isEqualTo(communityEntity.getDescription());
-        assertThat(body[2].community().name()).isEqualTo(communityEntity.getName());
+        assertThat(body).extracting("username").containsExactlyInAnyOrder(
+                adminName, "userForGetAll", "userForGetAll2");
+        var fetchedUser1 = java.util.Arrays.stream(body)
+                .filter(u -> u.username().equals("userForGetAll")).findFirst().orElseThrow();
+        assertThat(fetchedUser1.memberships()).hasSize(1);
+        assertThat(fetchedUser1.memberships().getFirst().community().id()).isEqualTo(community.getId());
 
-        userRepository.deleteAll(userEntities);
-        communityRepository.delete(communityEntity);
+        membershipRepository.deleteAll(membershipRepository.findByUserId(user1.getId()));
+        userRepository.deleteAll(List.of(user1, user2));
+        communityRepository.delete(community);
     }
 
     @Test
-    public void givenUsers_WhenGetUsersWithoutCommunity_ThenReturnException() {
-        UserEntity userEntity = userRepository.save(
-                UserEntity.builder()
-                        .name("userForGetAll2")
-                        .password("test")
-                        .role(ROLE_USER)
-                        .communityId(1L)
-                        .build()
-        );
-
-        String url = getBaseUri();
-
-        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
-        var body = result.getBody();
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("Community 1 not found");
-        assertThat(body.getDetail()).isEqualTo("Community 1 not found");
-
-        userRepository.delete(userEntity);
-    }
-
-    @Test
-    public void givenUsers_WhenGetUsersWithRoleUser_ThenReturnException() {
-        UserEntity userEntity = userRepository.save(
-                UserEntity.builder()
-                        .name("userRoleUser")
-                        .password(passwordEncoder.encode("password"))
-                        .role(ROLE_USER)
-                        .communityId(1L)
-                        .build()
-        );
-
-        String url = getBaseUri();
-
+    public void givenUsers_WhenGetUsersWithRoleUser_ThenReturnForbidden() {
+        var user = saveUser("userRoleUser", ROLE_USER);
         var httpEntity = new HttpEntity<>(getAuthHeader("userRoleUser"));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
-        userRepository.delete(userEntity);
-    }
-
-    @Test
-    public void givenUsers_WhenGetUsersWithRoleAdmin_ThenReturnException() {
-        UserEntity userEntity = userRepository.save(
-                UserEntity.builder()
-                        .name("userAdmin")
-                        .password(passwordEncoder.encode("password"))
-                        .role(ROLE_ADMIN)
-                        .communityId(1L)
-                        .build()
-        );
-
-        String url = getBaseUri();
-
-        var httpEntity = new HttpEntity<>(getAuthHeader("userAdmin"));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
+        var result = restTemplate.exchange(getBaseUri(), GET, httpEntity, ProblemDetail.class);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
-        userRepository.delete(userEntity);
+        userRepository.delete(user);
     }
 
     @Test
     public void givenUser_WhenGetUserById_ThenReturnUser() {
-        CommunityEntity communityEntity = communityRepository.save(
-                CommunityEntity.builder()
-                        .name("communityForGetById")
-                        .description("test")
-                        .build()
-        );
-        UserEntity userEntity = userRepository.save(
-                UserEntity.builder()
-                        .name("userForGetById")
-                        .password("test")
-                        .role(ROLE_USER)
-                        .communityId(communityEntity.getId())
-                        .build()
-        );
-
-        String url = getBaseUri() + "/" + userEntity.getId();
+        var user = saveUser("userForGetById", ROLE_USER);
 
         var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, UserDto.class);
+        var result = restTemplate.exchange(getBaseUri() + "/" + user.getId(), GET, httpEntity, UserDto.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
-        assertThat(body.id()).isEqualTo(userEntity.getId());
-        assertThat(body.name()).isEqualTo(userEntity.getName());
+        assertThat(body.id()).isEqualTo(user.getId());
+        assertThat(body.username()).isEqualTo("userForGetById");
         assertThat(body.role()).isEqualTo(ROLE_USER);
-        assertThat(body.community().id()).isEqualTo(communityEntity.getId());
-        assertThat(body.community().description()).isEqualTo(communityEntity.getDescription());
-        assertThat(body.community().name()).isEqualTo(communityEntity.getName());
+        assertThat(body.memberships()).isEmpty();
 
-
-        userRepository.delete(userEntity);
-        communityRepository.delete(communityEntity);
-    }
-
-    @Test
-    public void givenUser_WhenGetUserByIdWithoutCommunity_ThenReturnException() {
-        UserEntity userEntity = userRepository.save(
-                UserEntity.builder()
-                        .name("userForGetById")
-                        .password("test")
-                        .role(ROLE_USER)
-                        .communityId(1L)
-                        .build()
-        );
-
-        String url = getBaseUri() + "/" + userEntity.getId();
-
-        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
-        var body = result.getBody();
-
-        assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("Community 1 not found");
-        assertThat(body.getDetail()).isEqualTo("Community 1 not found");
-
-
+        userRepository.delete(user);
     }
 
     @Test
     public void givenUserId_WhenGetUserByIdThatNotExists_ThenReturnException() {
-
-        String url = getBaseUri() + "/4";
-
         var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
+        var result = restTemplate.exchange(getBaseUri() + "/99999", GET, httpEntity, ProblemDetail.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("User 4 not found");
-        assertThat(body.getDetail()).isEqualTo("User 4 not found");
-    }
-
-    @Test
-    public void givenUserId_WhenGetUserByIdWithAdminUser_ThenReturnException() {
-
-        String url = getBaseUri() + "/4";
-
-        var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
-
-        var result = restTemplate.exchange(url, GET, httpEntity, ProblemDetail.class);
-        var body = result.getBody();
-
-        assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("User 4 not found");
-        assertThat(body.getDetail()).isEqualTo("User 4 not found");
+        assertThat(body.getTitle()).isEqualTo("User 99999 not found");
     }
 
     @Test
     public void givenSuperAdminLogged_WhenCreateUser_ThenUserIsCreated() {
-
-        String url = getBaseUri();
-        var request = new RequestNewUserDto("CreateTestUser", "test", ROLE_USER, null);
+        var request = new RequestNewUserDto("CreateTestUser", "test", "name", "surname", ROLE_USER, null);
         var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
 
-        var result = restTemplate.exchange(url, POST, httpEntity, UserDto.class);
+        var result = restTemplate.exchange(getBaseUri(), POST, httpEntity, UserDto.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
-        assertThat(body.community()).isNull();
+        assertThat(body.memberships()).isEmpty();
         assertThat(body.role()).isEqualTo(ROLE_USER);
-        assertThat(body.name()).isEqualTo("CreateTestUser");
+        assertThat(body.username()).isEqualTo("CreateTestUser");
 
         userRepository.deleteById(body.id());
     }
 
     @Test
-    public void givenSuperAdminLoggedAndCommunity_WhenCreateUser_ThenUserIsCreated() {
-
-        String url = getBaseUri();
-        var communityEntity = communityRepository.save(CommunityEntity.builder()
-                .name("communityForCreate")
-                .description("test")
-                .build());
+    public void givenSuperAdminLoggedAndCommunity_WhenCreateUserWithMembership_ThenUserIsCreated() {
+        var community = communityRepository.save(
+                CommunityEntity.builder().name("communityForCreate").description("test").build());
         var request = new RequestNewUserDto(
-                "CreateTestUserWithCommunity",
-                "test",
-                ROLE_USER,
-                communityEntity.getId()
-        );
+                "CreateTestUserWithCommunity", "test", "name", "surname", ROLE_USER,
+                List.of(new RequestMembership(community.getId(), MEMBER)));
         var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
 
-        var result = restTemplate.exchange(url, POST, httpEntity, UserDto.class);
+        var result = restTemplate.exchange(getBaseUri(), POST, httpEntity, UserDto.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
-        assertThat(body.role()).isEqualTo(ROLE_USER);
-        assertThat(body.name()).isEqualTo("CreateTestUserWithCommunity");
-        assertThat(body.community()).isNotNull();
-        assertThat(body.community().id()).isEqualTo(communityEntity.getId());
-        assertThat(body.community().description()).isEqualTo(communityEntity.getDescription());
-        assertThat(body.community().name()).isEqualTo(communityEntity.getName());
+        assertThat(body.username()).isEqualTo("CreateTestUserWithCommunity");
+        assertThat(body.memberships()).hasSize(1);
+        assertThat(body.memberships().getFirst().community().id()).isEqualTo(community.getId());
+        assertThat(body.memberships().getFirst().role()).isEqualTo(MEMBER);
 
-        communityRepository.deleteById(body.community().id());
+        membershipRepository.deleteAll(membershipRepository.findByUserId(body.id()));
         userRepository.deleteById(body.id());
+        communityRepository.delete(community);
     }
 
     @Test
-    public void givenUserNotSuperAdmin_WhenCreateUSer_ThenReturnException() {
+    public void givenUserNotSuperAdmin_WhenCreateUser_ThenReturnForbidden() {
+        var user = saveUser("userNotAdmin", ROLE_USER);
+        var request = new RequestNewUserDto("CreateTestUser", "test", "name", "surname", ROLE_USER, null);
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getUsername()));
 
-        String url = getBaseUri();
-        var user = userRepository.save(UserEntity.builder()
-                .name("userNotAdmin")
-                .role(ROLE_USER)
-                .password("test")
-                .build());
-        var request = new RequestNewUserDto(
-                "CreateTestUserWithCommunity",
-                "test",
-                ROLE_USER,
-                null
-        );
-        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
+        var result = restTemplate.exchange(getBaseUri(), POST, httpEntity, ProblemDetail.class);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
         userRepository.delete(user);
     }
 
     @Test
-    public void givenUserAdmin_WhenCreateUSer_ThenReturnException() {
-
-        String url = getBaseUri();
-        var user = userRepository.save(UserEntity.builder()
-                .name("userAdmin")
-                .role(ROLE_ADMIN)
-                .password("test")
-                .build());
+    public void givenUserSuperAdmin_WhenCreateUserWithNonExistingCommunity_ThenReturnException() {
         var request = new RequestNewUserDto(
-                "CreateTestUserWithCommunity",
-                "test",
-                ROLE_USER,
-                null
-        );
-        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
-        userRepository.delete(user);
-    }
-
-    @Test
-    public void givenUserSuperAdmin_WhenCreateUSerWithNonExistingCommunity_ThenReturnException() {
-
-        String url = getBaseUri();
-        var request = new RequestNewUserDto(
-                "CreateTestUserWithCommunity",
-                "test",
-                ROLE_USER,
-                1L
-        );
+                "CreateTestUserWithCommunity", "test", "name", "surname", ROLE_USER,
+                List.of(new RequestMembership(99999L, MEMBER)));
         var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
 
-        var result = restTemplate.exchange(url, POST, httpEntity, ProblemDetail.class);
+        var result = restTemplate.exchange(getBaseUri(), POST, httpEntity, ProblemDetail.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("Community 1 not found");
-        assertThat(body.getDetail()).isEqualTo("Community 1 not found");
+        assertThat(body.getTitle()).isEqualTo("Community 99999 not found");
+
+        userRepository.findByUsername("CreateTestUserWithCommunity").ifPresent(userRepository::delete);
     }
 
     @Test
     public void givenSuperAdminLoggedAndUser_WhenUpdateUser_ThenUserIsUpdated() {
-
-        String url = getBaseUri();
-
-        var user = userRepository.save(UserEntity.builder()
-                .name("userForUpdate")
-                .role(ROLE_USER)
-                .password("test")
-                .build());
-        var request = new RequestUpdateUserDto(
-                "test2",
-                ROLE_ADMIN
-        );
+        var user = saveUser("userForUpdate", ROLE_USER);
+        var request = new RequestUpdateUserDto("test2", ROLE_ADMIN);
         var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
 
-        var result = restTemplate.exchange(url + "/" + user.getId(), PATCH, httpEntity, String.class);
+        var result = restTemplate.exchange(getBaseUri() + "/" + user.getId(), PATCH, httpEntity, String.class);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(userRepository.findById(user.getId()).orElseThrow(RuntimeException::new).getRole())
-                .isEqualTo(ROLE_ADMIN);
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole()).isEqualTo(ROLE_ADMIN);
 
         userRepository.delete(user);
     }
 
     @Test
     public void givenSuperAdminLogged_WhenUpdateUserDoesntExist_ThenReturnException() {
-
-        String url = getBaseUri();
-
-        var request = new RequestUpdateUserDto(
-                "test2",
-                ROLE_ADMIN
-        );
+        var request = new RequestUpdateUserDto("test2", ROLE_ADMIN);
         var httpEntity = new HttpEntity<>(request, getAuthHeader(adminName));
 
-        var result = restTemplate.exchange(
-                url + "/" + 999,
-                PATCH,
-                httpEntity,
-                ProblemDetail.class
-        );
-
+        var result = restTemplate.exchange(getBaseUri() + "/99999", PATCH, httpEntity, ProblemDetail.class);
         var body = result.getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(body.getTitle()).isEqualTo("User 999 not found");
-        assertThat(body.getDetail()).isEqualTo("User 999 not found");
+        assertThat(body.getTitle()).isEqualTo("User 99999 not found");
     }
 
     @Test
-    public void givenUserNotAdmin_WhenUpdateUser_ThenReturnException() {
-        String url = getBaseUri();
+    public void givenUserNotAdmin_WhenUpdateUser_ThenReturnForbidden() {
+        var user = saveUser("userNotAdminUpdate", ROLE_USER);
+        var request = new RequestUpdateUserDto("test2", ROLE_ADMIN);
+        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getUsername()));
 
-        var user = userRepository.save(UserEntity.builder()
-                .name("userNotAdmin")
-                .role(ROLE_USER)
-                .password("test")
-                .build());
-
-        var request = new RequestUpdateUserDto(
-                "test2",
-                ROLE_ADMIN
-        );
-        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(
-                url + "/" + 999,
-                PATCH,
-                httpEntity,
-                String.class
-        );
+        var result = restTemplate.exchange(getBaseUri() + "/99999", PATCH, httpEntity, String.class);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
-        userRepository.delete(user);
-    }
-
-    @Test
-    public void givenUserAdmin_WhenUpdateUser_ThenReturnException() {
-        String url = getBaseUri();
-
-        var user = userRepository.save(UserEntity.builder()
-                .name("userAdmin")
-                .role(ROLE_ADMIN)
-                .password("test")
-                .build());
-
-        var request = new RequestUpdateUserDto(
-                "test2",
-                ROLE_USER
-        );
-        var httpEntity = new HttpEntity<>(request, getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(
-                url + "/" + 999,
-                PATCH,
-                httpEntity,
-                String.class
-        );
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
         userRepository.delete(user);
     }
 
     @Test
     public void givenSuperAdminLogged_WhenDeleteUser_ThenUserIsDeleted() {
-
-        String url = getBaseUri();
-
-        var user = userRepository.save(UserEntity.builder()
-                .name("userToBeDeleted")
-                .role(ROLE_USER)
-                .password("test")
-                .build());
-
+        var user = saveUser("userToBeDeleted", ROLE_USER);
         var httpEntity = new HttpEntity<>(getAuthHeader(adminName));
 
-        restTemplate.exchange(
-                url + "/" + user.getId(),
-                DELETE,
-                httpEntity,
-                String.class
-        );
+        restTemplate.exchange(getBaseUri() + "/" + user.getId(), DELETE, httpEntity, String.class);
 
-        assertThat(userRepository.findById(user.getId()).isEmpty()).isTrue();
+        assertThat(userRepository.findById(user.getId())).isEmpty();
     }
 
     @Test
-    public void givenUser_WhenDeleteUser_ThenReturnException() {
-        String url = getBaseUri();
+    public void givenUser_WhenDeleteUser_ThenReturnForbidden() {
+        var user = saveUser("userNoAdminDelete", ROLE_USER);
+        var httpEntity = new HttpEntity<>(getAuthHeader(user.getUsername()));
 
-        var user = userRepository.save(UserEntity.builder()
-                .name("userNoAdmin")
-                .role(ROLE_USER)
-                .password("test")
-                .build());
-
-        var httpEntity = new HttpEntity<>(getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(
-                url + "/" + 999,
-                DELETE,
-                httpEntity,
-                String.class
-        );
+        var result = restTemplate.exchange(getBaseUri() + "/99999", DELETE, httpEntity, String.class);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-
         userRepository.delete(user);
     }
 
     @Test
-    public void givenUserAdmin_WhenDeleteUser_ThenReturnException() {
-        String url = getBaseUri();
+    public void givenLoggedUser_WhenGetMe_ThenReturnOwnUser() {
+        var user = saveUser("meUser", ROLE_USER);
+        var httpEntity = new HttpEntity<>(getAuthHeader(user.getUsername()));
 
-        var user = userRepository.save(UserEntity.builder()
-                .name("userAdmin")
-                .role(ROLE_ADMIN)
-                .password("test")
-                .build());
+        var result = restTemplate.exchange(getBaseUri() + "/me", GET, httpEntity, UserDto.class);
+        var body = result.getBody();
 
-        var httpEntity = new HttpEntity<>(getAuthHeader(user.getName()));
-
-        var result = restTemplate.exchange(
-                url + "/" + 999,
-                DELETE,
-                httpEntity,
-                String.class
-        );
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(body).isNotNull();
+        assertThat(body.username()).isEqualTo("meUser");
 
         userRepository.delete(user);
     }

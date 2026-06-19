@@ -46,3 +46,8 @@ jwt:
     prefix: Bearer
     issuer:
       info: community-api
+
+# PDF storage
+storage:
+  pdf:
+    path: ${java.io.tmpdir}/community-pdfs

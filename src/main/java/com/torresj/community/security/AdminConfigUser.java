@@ -27,12 +27,12 @@ public class AdminConfigUser {
 
     @Bean
     UserEntity createAdminUser() {
-        var member = userRepository.findByName(adminName);
+        var member = userRepository.findByUsername(adminName);
         member.ifPresent(userRepository::delete);
         var user = userRepository.save(
                 UserEntity.builder()
                         .role(ROLE_SUPERADMIN)
-                        .name(adminName)
+                        .username(adminName)
                         .password(encoder.encode(adminPassword))
                         .build());
         log.info("Created admin user: {}", user);

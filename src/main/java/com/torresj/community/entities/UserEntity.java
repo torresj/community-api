@@ -12,6 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * A user / owner ("usuario / propietario") of the system. A single concept: the person who
+ * logs in is also the property owner referenced in the meeting minutes. Community membership
+ * is many-to-many via {@link MembershipEntity}.
+ */
 @Entity
 @Getter
 @AllArgsConstructor
@@ -24,11 +29,14 @@ public class UserEntity {
     @Column(updatable = false)
     private Long id;
 
-    @Column
-    private Long communityId;
-
     @Column(updatable = false, unique = true)
+    private String username;
+
+    @Column
     private String name;
+
+    @Column
+    private String surname;
 
     @Column(nullable = false)
     private String password;

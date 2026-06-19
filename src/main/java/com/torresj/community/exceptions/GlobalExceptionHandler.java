@@ -28,6 +28,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(PropertyNotFoundException.class)
+    ProblemDetail handlePropertyNotFoundException(PropertyNotFoundException e) {
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        problemDetail.setTitle(e.getMessage());
+        log.error(e.toString());
+        return problemDetail;
+    }
+
+    @ExceptionHandler({ReportNotFoundException.class, ReportItemNotFoundException.class})
+    ProblemDetail handleReportNotFound(Exception e) {
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        problemDetail.setTitle(e.getMessage());
+        log.error(e.toString());
+        return problemDetail;
+    }
+
     @ExceptionHandler(LoginException.class)
     ProblemDetail handleLoginException(LoginException e) {
         ProblemDetail problemDetail =

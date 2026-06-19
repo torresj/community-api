@@ -32,10 +32,9 @@ public class LoginServiceImplTest {
         UserEntity userEntity =
                 UserEntity.builder()
                         .role(ROLE_USER)
-                        .name("login_test")
+                        .username("login_test")
                         .password("test")
                         .id(null)
-                        .communityId(1L)
                         .build();
 
         when(userService.getEntity("login_test")).thenReturn(userEntity);
@@ -65,10 +64,9 @@ public class LoginServiceImplTest {
         UserEntity userEntity =
                 UserEntity.builder()
                         .role(ROLE_USER)
-                        .name("login_test")
+                        .username("login_test")
                         .password("test")
                         .id(null)
-                        .communityId(1L)
                         .build();
 
         when(userService.getEntity("login_test")).thenReturn(userEntity);

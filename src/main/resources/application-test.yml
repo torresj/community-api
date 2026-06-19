@@ -15,3 +15,8 @@ jwt:
     prefix: Bearer
     issuer:
       info: community-api
+
+# PDF storage
+storage:
+  pdf:
+    path: target/community-pdfs-test

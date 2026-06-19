@@ -44,7 +44,7 @@ public class LoginControllerTest {
         var user = userRepository.save(
                 UserEntity.builder()
                         .role(ROLE_USER)
-                        .name("login_test_ok")
+                        .username("login_test_ok")
                         .password(encoder.encode("password"))
                         .build()
         );
@@ -80,7 +80,7 @@ public class LoginControllerTest {
         var user = userRepository.save(
                 UserEntity.builder()
                         .role(ROLE_USER)
-                        .name("login_test_wrong_password")
+                        .username("login_test_wrong_password")
                         .password(encoder.encode("wrong_password"))
                         .build()
         );

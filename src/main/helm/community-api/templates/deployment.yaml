@@ -35,6 +35,8 @@ spec:
           volumeMounts:
             - mountPath: /community-api/logs
               name: community-api-logs
+            - mountPath: /community-api/data
+              name: community-api-data
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -52,6 +54,8 @@ spec:
               value: "{{ .Values.image.version }}"
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
+            - name: STORAGE_PDF_PATH
+              value: "/community-api/data"
             - name: DB_NAME
               value: "{{ .Values.db.db_name }}"
             - name: DB_USER
@@ -76,6 +80,9 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: community-api-logs
+          persistentVolumeClaim:
+            claimName: community-api-pvc
+        - name: community-api-data
           persistentVolumeClaim:
             claimName: community-api-pvc
       {{- with .Values.nodeSelector }}

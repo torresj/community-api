@@ -1,5 +1,6 @@
 package com.torresj.community.services;
 
+import com.torresj.community.dtos.RequestMembership;
 import com.torresj.community.dtos.UserDto;
 import com.torresj.community.entities.UserEntity;
 import com.torresj.community.enums.UserRole;
@@ -9,16 +10,22 @@ import com.torresj.community.exceptions.UserNotFoundException;
 import java.util.List;
 
 public interface UserService {
-    UserDto create(Long communityId, String name, String password, UserRole role)
+    UserDto create(
+            String username,
+            String password,
+            String name,
+            String surname,
+            UserRole role,
+            List<RequestMembership> memberships)
             throws CommunityNotFoundException;
 
     UserDto get(long userId) throws UserNotFoundException, CommunityNotFoundException;
 
     List<UserDto> get() throws CommunityNotFoundException;
 
-    UserDto get(String name) throws UserNotFoundException, CommunityNotFoundException;
+    UserDto get(String username) throws UserNotFoundException, CommunityNotFoundException;
 
-    UserEntity getEntity(String name) throws UserNotFoundException;
+    UserEntity getEntity(String username) throws UserNotFoundException;
 
     void update(long userId, String newPassword) throws UserNotFoundException;
 

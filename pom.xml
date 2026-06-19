@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
+        <version>3.5.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.torresj</groupId>
@@ -17,22 +17,21 @@
     <properties>
         <revision>0.0-SNAPSHOT</revision>
         <java.version>21</java.version>
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.44</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <certificate-authority-data></certificate-authority-data>
         <cluster></cluster>
         <client-certificate-data></client-certificate-data>
         <client-key-data></client-key-data>
         <kubernetes-user></kubernetes-user>
         <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-        <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
-        <jib-maven-plugin.version>3.4.5</jib-maven-plugin.version>
-        <mapstruct.version>1.6.3</mapstruct.version>
-        <springdoc-openapi-starter-webmvc-ui.version>2.8.8</springdoc-openapi-starter-webmvc-ui.version>
-        <jjwt-api.version>0.12.6</jjwt-api.version>
+        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+        <jaxb-api.version>2.3.1</jaxb-api.version>
+        <jib-maven-plugin.version>3.5.1</jib-maven-plugin.version>
+        <springdoc-openapi-starter-webmvc-ui.version>2.8.16</springdoc-openapi-starter-webmvc-ui.version>
+        <jjwt-api.version>0.13.0</jjwt-api.version>
     </properties>
     <dependencies>
         <dependency>
@@ -94,6 +93,11 @@
             <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
             <version>${jjwt-api.version}</version>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.anthropic</groupId>
+            <artifactId>anthropic-java</artifactId>
+            <version>2.34.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,8 +1,9 @@
 package com.torresj.community.entities;
 
-import com.torresj.community.enums.PropertyCodeEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,19 +17,24 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 public class PropertyEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(updatable = false, nullable = false)
     private Long id;
 
     @Column
-    private Long ownerId;
+    private Long userId;
 
     @Column(nullable = false, updatable = false)
     private Long communityId;
 
-    @Column(nullable = false, updatable = false)
-    private PropertyCodeEnum code;
+    /**
+     * Free-text unit code as it appears in the minutes (e.g. "P.1-1ºA,AP.TR.7"). Differs per
+     * building/community, so it is a String rather than an enum.
+     */
+    @Column(nullable = false)
+    private String code;
 
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false)
     private double coefficient;
 
     @Column
