@@ -34,9 +34,11 @@ spec:
               protocol: TCP
           volumeMounts:
             - mountPath: /community-api/logs
-              name: community-api-logs
+              name: community-api-storage
+              subPath: logs
             - mountPath: /community-api/data
-              name: community-api-data
+              name: community-api-storage
+              subPath: data
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -79,10 +81,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
-        - name: community-api-logs
-          persistentVolumeClaim:
-            claimName: community-api-pvc
-        - name: community-api-data
+        - name: community-api-storage
           persistentVolumeClaim:
             claimName: community-api-pvc
       {{- with .Values.nodeSelector }}
